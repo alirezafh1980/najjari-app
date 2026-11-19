@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Checkout repository
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.10"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -34,8 +34,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
+            ccache \
+            git \
+            zip \
+            unzip \
             autoconf \
             automake \
+            m4 \
             libtool \
             libtool-bin \
             libltdl-dev \
@@ -46,11 +51,7 @@ jobs:
             libffi-dev \
             libssl-dev \
             libsqlite3-dev \
-            cmake \
-            ccache \
-            git \
-            zip \
-            unzip
+            cmake
 
       - name: Install Buildozer
         run: |
@@ -58,20 +59,14 @@ jobs:
           python -m pip install "Cython==0.29.36"
           python -m pip install "buildozer==1.5.0"
 
-      - name: Clean stale build data
-        run: |
-          rm -rf .buildozer
-          rm -rf bin
-          rm -rf build
-          rm -rf dist
-
-      - name: Build APK
+      - name: Build debug APK
         env:
           ACLOCAL_PATH: /usr/share/aclocal
-        run: buildozer -v android debug
+        run: |
+          yes | buildozer -v android debug
 
       - name: Upload APK
-        if: always()
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: najjari-debug-apk
