@@ -4,7 +4,7 @@ package.name = hesabdarimobile
 package.domain = org.najjari
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,ttf
-version = 1.0.1
+version = 1.0.2
 requirements = python3,kivy==2.3.0,arabic-reshaper==3.0.0,python-bidi==0.4.2
 orientation = portrait
 fullscreen = 0
