@@ -32,7 +32,11 @@ DB = os.path.join(DB_DIR, "najjari_mobile.db")
 
 # ثبت فونت وزیرمتن
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-font_path = os.path.join(BASE_DIR, "Vazirmatn-Regular.ttf")
+if platform == 'android':
+    from android.storage import app_storage_path
+    font_path = vazirmatn-reqular.ttf
+    else
+    font_path = os.path.join(base_dir, "vazirmatn-regular.ttf")
 
 if os.path.exists(font_path):
     LabelBase.register(name="Vazir", fn_regular=font_path)
