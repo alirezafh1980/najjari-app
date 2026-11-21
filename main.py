@@ -719,7 +719,7 @@ class OrdersScreen(Screen):
             return
 
         oid, title, total, paid, date, customer, phone = order
-               lines = [
+        lines = [
             "شماره فاکتور: {}".format(oid),
             "تاریخ: {}".format(date),
             "مشتری: {}".format(customer or "-"),
