@@ -821,6 +821,8 @@ class OrdersScreen(Screen):
             return
 
 
+
+
         oid, title, total, paid, date, customer, phone = order
         lines = [
             "شماره فاکتور: {}".format(oid),
@@ -842,6 +844,8 @@ class OrdersScreen(Screen):
         ])
 
 
+
+
                 content = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6))
         details = Label(
             text=fa("\n".join(lines)),
@@ -856,10 +860,12 @@ class OrdersScreen(Screen):
         content.add_widget(button("بستن", lambda *_: popup.dismiss(), height=40))
         popup.open()
 
+
         content.bind(
             pos=lambda widget, value: setattr(invoice_bg, "pos", value),
             size=lambda widget, value: setattr(invoice_bg, "size", value)
         )
+
 
         details = Label(
             text=fa("\n".join(lines)),
@@ -870,6 +876,7 @@ class OrdersScreen(Screen):
             valign="top"
         )
         content.add_widget(details)
+
 
         popup = Popup(
             title=fa("فاکتور فروش"),
@@ -894,7 +901,6 @@ class OrdersScreen(Screen):
         popup = Popup(title=fa("فاکتور فروش"), content=content, size_hint=(0.92, 0.82))
         content.add_widget(button("بستن", lambda *_: popup.dismiss(), height=40))
         popup.open()
-
 
 class CashScreen(Screen):
     def __init__(self, **kwargs):
