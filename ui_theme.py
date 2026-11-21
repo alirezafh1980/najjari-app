@@ -71,3 +71,5 @@ def apply_theme(widget):
         widget.title_color = DARK_TEXT
         widget.title_font = "Vazir"
         widget.separator_color = (0.78, 0.82, 0.87, 1)
+        widget.title_font = "Vazir"
+        widget.separator_color = (0.78, 0.82, 0.87, 1)
