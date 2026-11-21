@@ -1,74 +1,73 @@
-name: Build APK
+import os
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+from kivy.core.text import LabelBase
+from kivy.graphics import Color
+from kivy.resources import resource_add_path, resource_find
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.uix.popup import Popup
+from kivy.uix.textinput import TextInput
 
-permissions:
-  contents: read
+DARK_TEXT = (0.10, 0.13, 0.18, 1)
+MUTED_TEXT = (0.30, 0.34, 0.39, 1)
+LIGHT_FIELD = (0.97, 0.98, 1.0, 1)
+LIGHT_BUTTON = (0.89, 0.93, 0.97, 1)
 
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 120
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+FONT_FILE = "Vazirmatn-Regular.ttf"
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+resource_add_path(APP_DIR)
+FONT_PATH = resource_find(FONT_FILE) or os.path.join(APP_DIR, FONT_FILE)
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
+if not os.path.isfile(FONT_PATH) or os.path.getsize(FONT_PATH) < 1024:
+    raise FileNotFoundError(
+        "Vazirmatn-Regular.ttf پیدا نشد یا فایل فونت معتبر نیست: " + FONT_PATH
+    )
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
+LabelBase.register(name="Vazir", fn_regular=FONT_PATH)
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            ccache \
-            git \
-            zip \
-            unzip \
-            autoconf \
-            automake \
-            m4 \
-            libtool \
-            libtool-bin \
-            libltdl-dev \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libffi-dev \
-            libssl-dev \
-            libsqlite3-dev \
-            cmake
 
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install "Cython==0.29.36"
-          python -m pip install "buildozer==1.5.0"
+def apply_theme(widget):
+    """فونت فارسی، نوشته‌های تیره و پس‌زمینه‌های روشن."""
+    if isinstance(widget, (Label, Button, TextInput)):
+        widget.font_name = "Vazir"
+        if hasattr(widget, "font_script_name"):
+            widget.font_script_name = "Arab"
 
-      - name: Build debug APK
-        env:
-          ACLOCAL_PATH: /usr/share/aclocal
-        run: |
-          yes | buildozer -v android debug
+    if isinstance(widget, Label):
+        widget.color = DARK_TEXT
 
-      - name: Upload APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: najjari-debug-apk
-          path: bin/*.apk
-          if-no-files-found: error
+    elif isinstance(widget, TextInput):
+        # متن ورودی را reshape یا جابه‌جا نکن؛ ترتیب اصلی حروف حفظ شود.
+        widget.base_direction = None
+        widget.halign = "right"
+        widget.foreground_color = DARK_TEXT
+        widget.hint_text_color = MUTED_TEXT
+        widget.cursor_color = DARK_TEXT
+        widget.background_normal = ""
+        widget.background_active = ""
+        widget.background_color = LIGHT_FIELD
+
+    elif isinstance(widget, Button):
+        widget.color = DARK_TEXT
+        widget.background_normal = ""
+        widget.background_down = ""
+        widget.background_color = LIGHT_BUTTON
+
+        # دکمه‌های RoundedButton پس‌زمینه را در canvas خود رسم می‌کنند.
+        if widget.__class__.__name__ == "RoundedButton":
+            for instruction in widget.canvas.before.children:
+                if isinstance(instruction, Color):
+                    r, g, b, a = instruction.rgba
+                    instruction.rgba = (
+                        0.82 + 0.18 * r,
+                        0.82 + 0.18 * g,
+                        0.82 + 0.18 * b,
+                        a,
+                    )
+
+    if isinstance(widget, Popup):
+        widget.background_color = LIGHT_FIELD
+        widget.title_color = DARK_TEXT
+        widget.title_font = "Vazir"
+        widget.separator_color = (0.78, 0.82, 0.87, 1)
