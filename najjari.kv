@@ -1,7 +1,17 @@
 #:import apply_theme ui_theme.apply_theme
+#:import Color kivy.graphics.Color
+#:import Rectangle kivy.graphics.Rectangle
 
 <Widget>:
     on_parent: apply_theme(self)
+
+<OrdersScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.97, 0.98, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
 
 <Popup>:
     background_color: 0.97, 0.98, 1, 1

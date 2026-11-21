@@ -1,7 +1,6 @@
 import os
 
 from kivy.core.text import LabelBase
-from kivy.graphics import Color
 from kivy.resources import resource_add_path, resource_find
 from kivy.uix.button import Button
 from kivy.uix.label import Label
@@ -28,7 +27,7 @@ LabelBase.register(name="Vazir", fn_regular=FONT_PATH)
 
 
 def apply_theme(widget):
-    """فونت فارسی، نوشته‌های تیره و پس‌زمینه‌های روشن."""
+    """فونت فارسی و رنگ‌های روشن برای اجزای رابط کاربری."""
     if isinstance(widget, (Label, Button, TextInput)):
         widget.font_name = "Vazir"
         if hasattr(widget, "font_script_name"):
@@ -36,9 +35,7 @@ def apply_theme(widget):
 
     if isinstance(widget, Label):
         widget.color = DARK_TEXT
-
     elif isinstance(widget, TextInput):
-        # متن ورودی را reshape یا جابه‌جا نکن؛ ترتیب اصلی حروف حفظ شود.
         widget.base_direction = None
         widget.halign = "right"
         widget.foreground_color = DARK_TEXT
@@ -47,29 +44,14 @@ def apply_theme(widget):
         widget.background_normal = ""
         widget.background_active = ""
         widget.background_color = LIGHT_FIELD
-
     elif isinstance(widget, Button):
         widget.color = DARK_TEXT
         widget.background_normal = ""
         widget.background_down = ""
         widget.background_color = LIGHT_BUTTON
 
-        # دکمه‌های RoundedButton پس‌زمینه را در canvas خود رسم می‌کنند.
-        if widget.__class__.__name__ == "RoundedButton":
-            for instruction in widget.canvas.before.children:
-                if isinstance(instruction, Color):
-                    r, g, b, a = instruction.rgba
-                    instruction.rgba = (
-                        0.82 + 0.18 * r,
-                        0.82 + 0.18 * g,
-                        0.82 + 0.18 * b,
-                        a,
-                    )
-
     if isinstance(widget, Popup):
         widget.background_color = LIGHT_FIELD
         widget.title_color = DARK_TEXT
-        widget.title_font = "Vazir"
-        widget.separator_color = (0.78, 0.82, 0.87, 1)
         widget.title_font = "Vazir"
         widget.separator_color = (0.78, 0.82, 0.87, 1)
