@@ -820,6 +820,7 @@ class OrdersScreen(Screen):
         if not order:
             return
 
+
         oid, title, total, paid, date, customer, phone = order
         lines = [
             "شماره فاکتور: {}".format(oid),
@@ -840,19 +841,20 @@ class OrdersScreen(Screen):
             "مانده: {} تومان".format(money(total - paid))
         ])
 
-                     content = BoxLayout(
-            orientation="vertical",
-            padding=dp(10),
-            spacing=dp(6)
-        )
 
-        with content.canvas.before:
-            Color(1, 1, 1, 1)
-            invoice_bg = RoundedRectangle(
-                pos=content.pos,
-                size=content.size,
-                radius=[dp(8)]
-            )
+                content = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6))
+        details = Label(
+            text=fa("\n".join(lines)),
+            font_name="Vazir",
+            font_size="13sp",
+            color=DARK,
+            halign="right",
+            valign="top"
+        )
+        content.add_widget(details)
+        popup = Popup(title=fa("فاکتور فروش"), content=content, size_hint=(0.92, 0.82))
+        content.add_widget(button("بستن", lambda *_: popup.dismiss(), height=40))
+        popup.open()
 
         content.bind(
             pos=lambda widget, value: setattr(invoice_bg, "pos", value),
