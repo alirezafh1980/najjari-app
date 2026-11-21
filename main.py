@@ -719,14 +719,13 @@ class OrdersScreen(Screen):
             return
 
         oid, title, total, paid, date, customer, phone = order
-        lines = [
+               lines = [
             "شماره فاکتور: {}".format(oid),
             "تاریخ: {}".format(date),
             "مشتری: {}".format(customer or "-"),
             "تلفن: {}".format(phone or "-"),
             "",
             "اقلام:"
-        "
         ]
         for name, category, qty, price, line_total in items:
             lines.append("{} ({}) | {} × {} = {}".format(name, category, qty, money(price), money(line_total)))
