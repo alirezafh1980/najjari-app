@@ -840,7 +840,7 @@ class OrdersScreen(Screen):
             "مانده: {} تومان".format(money(total - paid))
         ])
 
-                content = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6))
+        content = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6))
         details = Label(
             text=fa("\n".join(lines)),
             font_name="Vazir",
