@@ -5,6 +5,14 @@
 <Widget>:
     on_parent: apply_theme(self)
 
+<Screen>:
+    canvas.before:
+        Color:
+            rgba: 0.97, 0.98, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
 <OrdersScreen>:
     canvas.before:
         Color:
@@ -14,6 +22,7 @@
             size: self.size
 
 <Popup>:
+    background: ""
     background_color: 0.97, 0.98, 1, 1
     title_color: 0.10, 0.13, 0.18, 1
     title_font: "Vazir"

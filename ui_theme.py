@@ -1,10 +1,12 @@
 import os
 
 from kivy.core.text import LabelBase
+from kivy.graphics import Color, Rectangle
 from kivy.resources import resource_add_path, resource_find
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
+from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
 DARK_TEXT = (0.10, 0.13, 0.18, 1)
@@ -26,8 +28,22 @@ if not os.path.isfile(FONT_PATH) or os.path.getsize(FONT_PATH) < 1024:
 LabelBase.register(name="Vazir", fn_regular=FONT_PATH)
 
 
+def _paint_light(widget):
+    """Paint an opaque light background once, tracking later resize/move."""
+    if widget is None or getattr(widget, "_light_background_installed", False):
+        return
+    widget._light_background_installed = True
+    with widget.canvas.before:
+        Color(*LIGHT_FIELD)
+        rectangle = Rectangle(pos=widget.pos, size=widget.size)
+    widget.bind(
+        pos=lambda instance, value: setattr(rectangle, "pos", value),
+        size=lambda instance, value: setattr(rectangle, "size", value),
+    )
+
+
 def apply_theme(widget):
-    """فونت فارسی و رنگ‌های روشن برای اجزای رابط کاربری."""
+    """Set Persian font and force screens and invoice popups to light surfaces."""
     if isinstance(widget, (Label, Button, TextInput)):
         widget.font_name = "Vazir"
         if hasattr(widget, "font_script_name"):
@@ -50,8 +66,15 @@ def apply_theme(widget):
         widget.background_down = ""
         widget.background_color = LIGHT_BUTTON
 
+    if isinstance(widget, Screen):
+        _paint_light(widget)
+
     if isinstance(widget, Popup):
+        # Avoid Kivy's dark default popup texture; its content also gets an
+        # opaque light canvas so it stays light on every Android theme.
+        widget.background = ""
         widget.background_color = LIGHT_FIELD
         widget.title_color = DARK_TEXT
         widget.title_font = "Vazir"
         widget.separator_color = (0.78, 0.82, 0.87, 1)
+        _paint_light(widget.content)
