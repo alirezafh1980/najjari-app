@@ -840,7 +840,46 @@ class OrdersScreen(Screen):
             "مانده: {} تومان".format(money(total - paid))
         ])
 
-                content = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(6))
+                     content = BoxLayout(
+            orientation="vertical",
+            padding=dp(10),
+            spacing=dp(6)
+        )
+
+        with content.canvas.before:
+            Color(1, 1, 1, 1)
+            invoice_bg = RoundedRectangle(
+                pos=content.pos,
+                size=content.size,
+                radius=[dp(8)]
+            )
+
+        content.bind(
+            pos=lambda widget, value: setattr(invoice_bg, "pos", value),
+            size=lambda widget, value: setattr(invoice_bg, "size", value)
+        )
+
+        details = Label(
+            text=fa("\n".join(lines)),
+            font_name="Vazir",
+            font_size="13sp",
+            color=(0.10, 0.13, 0.18, 1),
+            halign="right",
+            valign="top"
+        )
+        content.add_widget(details)
+
+        popup = Popup(
+            title=fa("فاکتور فروش"),
+            content=content,
+            size_hint=(0.92, 0.82),
+            background_color=(1, 1, 1, 1),
+            title_color=(0.10, 0.13, 0.18, 1),
+            title_font="Vazir",
+            separator_color=(0.78, 0.82, 0.87, 1)
+        )
+        content.add_widget(button("بستن", lambda *_: popup.dismiss(), height=40))
+        popup.open()
         details = Label(
             text=fa("\n".join(lines)),
             font_name="Vazir",
