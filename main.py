@@ -724,7 +724,8 @@ class OrdersScreen(Screen):
             "تاریخ: {}".format(date),
             "مشتری: {}".format(customer or "-"),
             "تلفن: {}".format(phone or "-"),
-            "", "اقلام:
+                       "", "اقلام:
+        "
         "
         ]
         for name, category, qty, price, line_total in items:
