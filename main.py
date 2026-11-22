@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import shutil
 from contextlib import contextmanager
 from datetime import datetime
 
@@ -163,6 +164,24 @@ def setup_db():
             unit_price REAL NOT NULL,
             line_total REAL NOT NULL
         )""")
+        
+        # جدول جدید برای کارگرها
+        con.execute("""CREATE TABLE IF NOT EXISTS workers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            phone TEXT DEFAULT '',
+            daily_wage REAL DEFAULT 0,
+            days_worked REAL DEFAULT 0,
+            paid REAL DEFAULT 0
+        )""")
+        
+        # جدول جدید برای تراکنش‌های کارگر (پرداخت‌ها)
+        con.execute("""CREATE TABLE IF NOT EXISTS worker_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            worker_id INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            date TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+        )""")
 
         if con.execute("SELECT COUNT(*) FROM categories").fetchone()[0] == 0:
             con.executemany(
@@ -198,10 +217,12 @@ def label(text, size=15, color=DARK, height=40):
     )
 
 
+# تغییر مهم در کیبورد برای اندروید (حل مشکل سر و ته شدن تایپ)
 def input_box(hint, numeric=False, height=40):
     return TextInput(
         hint_text=fa(hint), font_name="Vazir", font_size="15sp",
-        halign="right", multiline=False, base_direction=None,
+        halign="right", multiline=False, 
+        base_direction='rtl' if platform == 'android' else None,
         background_normal="", background_active="", background_color=(1, 1, 1, 1),
         foreground_color=DARK, hint_text_color=MUTED, cursor_color=DARK,
         padding=[dp(10), dp(9), dp(10), dp(9)],
@@ -523,6 +544,7 @@ class ProductsScreen(Screen):
 
         self.clear_form()
         self.refresh()
+        
     def delete_product(self, *_):
         product = self.products.get(self.product_spinner.text)
         if not product:
@@ -752,6 +774,137 @@ class OrdersScreen(Screen):
         popup.open()
 
 
+# ---------- صفحه کارگرها و بکاپ (جدید) ----------
+class WorkersScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.workers = {}
+        layout = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(5))
+        layout.add_widget(label("مدیریت کارگرها", 18))
+        
+        # فرم افزودن کارگر
+        self.name_input = input_box("نام کارگر")
+        self.phone_input = input_box("شماره تماس")
+        self.wage_input = input_box("دستمزد روزانه", numeric=True)
+        self.days_input = input_box("روزهای کارکرد", numeric=True)
+        layout.add_widget(self.name_input)
+        layout.add_widget(self.phone_input)
+        layout.add_widget(self.wage_input)
+        layout.add_widget(self.days_input)
+        layout.add_widget(button("افزودن کارگر", self.add_worker, GREEN))
+        
+        # لیست کارگرها
+        self.items, scroll = scroll_list()
+        layout.add_widget(scroll)
+        
+        # دکمه بکاپ‌گیری در پایین صفحه
+        layout.add_widget(button("  بکاپ‌گیری از دیتابیس", self.backup_database, PALE, 45))
+        
+        self.add_widget(layout)
+
+    def on_pre_enter(self, *_):
+        self.refresh()
+
+    def add_worker(self, *_):
+        name = self.name_input.text.strip()
+        if not name:
+            message("نام کارگر را وارد کنید")
+            return
+        wage = parse_number(self.wage_input.text)
+        days = parse_number(self.days_input.text)
+        
+        with database() as con:
+            con.execute(
+                "INSERT INTO workers(name, phone, daily_wage, days_worked) VALUES(?,?,?,?)",
+                (name, self.phone_input.text.strip(), wage, days)
+            )
+        
+        self.name_input.text = ""
+        self.phone_input.text = ""
+        self.wage_input.text = ""
+        self.days_input.text = ""
+        self.refresh()
+
+    def refresh(self):
+        self.items.clear_widgets()
+        with database() as con:
+            rows = con.execute("SELECT id, name, daily_wage, days_worked, paid FROM workers ORDER BY name").fetchall()
+            self.workers = {fa(row[1]): row for row in rows}
+        
+        for wid, name, wage, days, paid in rows:
+            total_wage = wage * days
+            debt = total_wage - paid
+            
+            # ساخت یک باکس برای هر کارگر
+            box = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(60), spacing=dp(2))
+            info = Label(
+                text=fa("{} | طلب: {} | پرداختی: {} | مانده: {}".format(
+                    name, money(total_wage), money(paid), money(debt)
+                )),
+                font_name="Vazir", font_size="12sp", color=DARK, halign="right"
+            )
+            box.add_widget(info)
+            
+            # دکمه پرداخت به کارگر
+            pay_btn = button("ثبت پرداخت به کارگر", height=30, color=PALE)
+            pay_btn.bind(on_release=lambda _btn, worker_id=wid, worker_name=name, debt_val=debt: self.pay_worker(worker_id, worker_name, debt_val))
+            box.add_widget(pay_btn)
+            
+            self.items.add_widget(box)
+            
+        if not rows:
+            self.items.add_widget(label("کارگری ثبت نشده است", 13))
+
+    def pay_worker(self, worker_id, name, debt):
+        content = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(10))
+        content.add_widget(Label(text=fa("پرداخت به: {}".format(name)), font_name="Vazir", color=DARK))
+        
+        amount_input = input_box("مبلغ پرداختی", numeric=True)
+        content.add_widget(amount_input)
+        
+        popup = Popup(title=fa("ثبت پرداخت"), content=content, size_hint=(0.85, 0.4))
+        
+        def do_payment(*_):
+            amount = parse_number(amount_input.text)
+            if amount <= 0:
+                message("مبلغ معتبر وارد کنید")
+                return
+            with database() as con:
+                con.execute("UPDATE workers SET paid = paid + ? WHERE id=?", (amount, worker_id))
+                con.execute("INSERT INTO worker_payments(worker_id, amount) VALUES(?,?)", (worker_id, amount))
+                con.execute(
+                    "INSERT INTO cashbox(type,amount,date,note) VALUES('out',?,datetime('now','localtime'),?)",
+                    (amount, "پرداخت به کارگر {}".format(name))
+                )
+            popup.dismiss()
+            self.refresh()
+            message("پرداخت با موفقیت ثبت شد")
+            
+        btn_row = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(5))
+        btn_row.add_widget(button("ثبت", do_payment, GREEN))
+        btn_row.add_widget(button("لغو", lambda *_: popup.dismiss(), RED))
+        content.add_widget(btn_row)
+        
+        popup.open()
+
+    def backup_database(self, *_):
+        try:
+            # مسیر ذخیره در حافظه گوشی (پوشه Download)
+            if platform == "android":
+                from android.storage import primary_external_storage_path
+                backup_dir = os.path.join(primary_external_storage_path(), "Download")
+            else:
+                backup_dir = DB_DIR
+                
+            filename = "najjari_backup_{}.db".format(datetime.now().strftime("%Y%m%d_%H%M%S"))
+            backup_path = os.path.join(backup_dir, filename)
+            
+            shutil.copyfile(DB_PATH, backup_path)
+            message("بکاپ با موفقیت ذخیره شد:\n\n{}".format(backup_path), "موفق")
+        except Exception as e:
+            message("خطا در بکاپ‌گیری: {}".format(str(e)), "خطا")
+
+
 class CashScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -832,10 +985,11 @@ class BottomNav(BoxLayout):
         self.spacing = dp(2)
         for title, screen in (
             ("خانه", "dashboard"), ("مشتریان", "customers"),
-            ("محصولات", "products"), ("فاکتور", "orders"), ("صندوق", "cash")
+            ("محصولات", "products"), ("فاکتور", "orders"), 
+            ("کارگرها", "workers"), ("صندوق", "cash")
         ):
             item = Button(
-                text=fa(title), font_name="Vazir", font_size="10sp", color=DARK,
+                text=fa(title), font_name="Vazir", font_size="9sp", color=DARK,
                 background_normal="", background_color=PALE
             )
             item.bind(on_release=lambda _btn, name=screen: setattr(manager, "current", name))
@@ -853,6 +1007,7 @@ class NajjariApp(App):
         self.manager.add_widget(self.account_screen)
         self.manager.add_widget(ProductsScreen(name="products"))
         self.manager.add_widget(OrdersScreen(name="orders"))
+        self.manager.add_widget(WorkersScreen(name="workers"))
         self.manager.add_widget(CashScreen(name="cash"))
         root.add_widget(self.manager)
         root.add_widget(BottomNav(self.manager))
@@ -865,3 +1020,4 @@ class NajjariApp(App):
 
 if __name__ == "__main__":
     NajjariApp().run()
+
